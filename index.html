@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head> 
+  <meta charset="UTF-8">
+  <title>HACCP Tools</title>
+  <link rel="stylesheet" href="styles.css">
+</head> 
+<body>
+  <div class="appbar">
+    <img src="https://www.skikenzo.nl/wp-content/uploads/2019/01/skik-zo-wit.svg" alt="Skik en Zo logo">
+    <div class="appbar-title">HACCP Tools</div>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">🌙 Neger</button>
+  </div>
+  
+  <div class="container">
+    <div class="card">
+      <h2>Warme producten terugkoelen</h2>
+      <button onclick="genereer('bainmarie', 'output1')">Genereer</button>
+      <textarea id="output1" readonly placeholder="Resultaat verschijnt hier..."></textarea>
+      <button onclick="kopieer('output1')">Kopieer naar klembord</button>
+    </div>
+    
+    <div class="card">
+      <h2>Invriezen product</h2>
+      <button onclick="genereer('vriezer', 'output2')">Genereer</button>
+      <textarea id="output2" readonly placeholder="Resultaat verschijnt hier..."></textarea>
+      <button onclick="kopieer('output2')">Kopieer naar klembord</button>
+    </div>
+  </div>
+  
+  <div class="container full-width">
+    <div class="card full-width">
+      <h2>Product Stickeren (Testomgeving)</h2>
+      
+      <div class="section-grid">
+        <div class="employee-section">
+          <h3>Medewerker Selectie</h3>
+          <label for="employeeSelect">Selecteer Medewerker:</label>
+          <select id="employeeSelect">
+             <option value="">Kies een medewerker...</option>
+            <option value="Rolf">Rolf</option>
+            <option value="Barry">Barry</option>
+            <option value="Tyan">Tyan</option>
+            <option value="Isa">Isa</option>
+            <option value="Jens">Jens</option>
+            <option value="Stijn">Stijn</option>
+            <option value="Marit">Marit</option>
+            <option value="Mik">Mik</option>
+          </select>
+        </div>
+        
+        <div class="printer-settings">
+          <h3>Printer Instellingen</h3>
+          <label for="printerSelect">Selecteer Printer:</label>
+          <select id="printerSelect">
+            <option value="">Zoek printers...</option>
+          </select>
+          
+          <label for="labelSize">Label Grootte:</label>
+          <select id="labelSize">
+            <option value="small">Klein (30x20mm)</option>
+            <option value="medium" selected>Medium (40x30mm)</option>
+            <option value="large">Groot (50x30mm)</option>
+          </select>
+        </div>
+      </div>
+      
+      <h3>Product Selectie</h3>
+      <div class="product-grid" id="productGrid">
+        <!-- Products will be generated here -->
+      </div>
+      
+      <div class="custom-product-section">
+        <h3>Custom Product</h3>
+        <div class="custom-product-form">
+          <input type="text" id="customProductName" placeholder="Voer productnaam in..." maxlength="30">
+          <input type="date" id="customProductDate">
+          <button onclick="addCustomProduct()" type="button">Voeg Toe</button>
+        </div>
+        <div id="customProductsList"></div>
+      </div>
+      
+      <div class="print-controls">
+        <button onclick="zoekPrinters()">Zoek Printers</button>
+        <button onclick="printSelectedLabels()" id="printBtn" disabled>Print Labels</button>
+      </div>
+      
+      <div id="printStatus"></div>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="copyright">©2025 Jens Taken</div>
+  </div>
+
+  <script>
+    const productenBainMarie = [
+      "Tomatensoep", "Pepersaus", "Champignonroomsaus", "Gegratineerde Champignons",
+      "Soepballen", "Spinaziequiche", "Puree"
+    ];
+    
+    const productenVriezer = [
+      "Pulled chicken", "Soepballen", "Schnitzel", "Quiche", "Spinaziequiche",
+      "Zalm", "Ossenhaas Spies", "Gamba's"
+    ];
+
+    // Productlijst gebaseerd op Skik & Zo dinerkaart
+    const stickerProducten = [
+      // Soepen
+      { naam: "Tomatensoep", houdbaarDagen: 3 },
+      
+      // Sauzen
+      { naam: "Pepersaus", houdbaarDagen: 5 },
+      { naam: "Champroomsaus", houdbaarDagen: 4 },
+      { naam: "Kruidenboter", houdbaarDagen: 7 },
+      { naam: "Chimichurri", houdbaarDagen: 3 },
+      { naam: "Sweet chili saus", houdbaarDagen: 14 },
+      { naam: "Cocktailsaus", houdbaarDagen: 7 },
+      { naam: "Burgerrelish", houdbaarDagen: 14 },
+      { naam: "Creamy baconsaus", houdbaarDagen: 4 },
+      { naam: "Honing-mosterdsaus", houdbaarDagen: 7 },
+      { naam: "Tzatziki", houdbaarDagen: 3 },
+      
+      // Voorgerechten
+      { naam: "Gegratineerde Champignons", houdbaarDagen: 2 },
+      { naam: "Bruschetta spread", houdbaarDagen: 3 },
+      { naam: "Camembert (ovenklaar)", houdbaarDagen: 2 },
+      { naam: "Garnalen kroketjes", houdbaarDagen: 1 },
+      { naam: "Mini loempia's", houdbaarDagen: 1 },
+      { naam: "Karaage chicken", houdbaarDagen: 2 },
+      { naam: "Carpaccio (gesneden)", houdbaarDagen: 1 },
+      { naam: "Nacho's (voorbereid)", houdbaarDagen: 1 },
+      
+      // Hoofdgerechten
+      { naam: "Schnitzel (rauw)", houdbaarDagen: 2 },
+      { naam: "Schnitzel (gebakken)", houdbaarDagen: 2 },
+      { naam: "Zalmfilet", houdbaarDagen: 2 },
+      { naam: "Butterfly gamba's", houdbaarDagen: 1 },
+      { naam: "Spinazie quiche", houdbaarDagen: 4 },
+      { naam: "Pulled chicken", houdbaarDagen: 3 },
+      { naam: "Ossenhaas spies", houdbaarDagen: 2 },
+      { naam: "Black Angus steak", houdbaarDagen: 2 },
+      
+      // Burger vlees
+      { naam: "Rundvleesburger", houdbaarDagen: 2 },
+      { naam: "Kipburger", houdbaarDagen: 2 },
+      { naam: "Avocado burger", houdbaarDagen: 1 },
+      
+      // Bijgerechten
+      { naam: "Roerbakgroenten", houdbaarDagen: 2 },
+      { naam: "Roseval aardappelen", houdbaarDagen: 3 },
+      { naam: "Friet (voorgebakken)", houdbaarDagen: 1 },
+      { naam: "Groene salade", houdbaarDagen: 1 },
+      
+      // Desserts
+      { naam: "Chocotaartje", houdbaarDagen: 3 },
+      { naam: "Monchou dessert", houdbaarDagen: 2 },
+      { naam: "Lemon curd", houdbaarDagen: 5 },
+      { naam: "Boerenroomijs", houdbaarDagen: 30 }
+    ];
+
+    let selectedPrinter = null;
+    let customProducts = [];
+
+    // Dark mode functionality
+    function checkTimeAndSetTheme() {
+      const now = new Date();
+      const hour = now.getHours();
+      const savedTheme = localStorage.getItem('theme');
+      
+      // Auto dark mode after 21:00 (9 PM) or before 6:00 (6 AM)
+      const shouldBeAutoD = hour >= 21 || hour < 6;
+      
+      if (savedTheme) {
+        // User has a saved preference
+        setTheme(savedTheme);
+      } else if (shouldBeAutoD) {
+        // Auto dark mode time
+        setTheme('dark');
+      } else {
+        // Auto light mode time
+        setTheme('light');
+      }
+    }
+
+    function setTheme(theme) {
+      const html = document.documentElement;
+      const themeToggle = document.getElementById('themeToggle');
+      
+      if (theme === 'dark') {
+        html.setAttribute('data-theme', 'dark');
+        themeToggle.innerHTML = '☀️ Licht';
+      } else {
+        html.removeAttribute('data-theme');
+        themeToggle.innerHTML = '🌙 Neger';
+      }
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      setTheme(newTheme);
+      localStorage.setItem('theme', newTheme);
+    }
+
+    function genereer(type, targetId) {
+      const producten = type === 'vriezer' ? productenVriezer : productenBainMarie;
+      const randomProduct = producten[Math.floor(Math.random() * producten.length)];
+      let temp1, temp2, temp3, tekst;
+      
+      if (type === 'vriezer') {
+        temp1 = (Math.random() * 8 + 20).toFixed(1);
+        temp2 = (Math.random() * 15 + 0).toFixed(1);
+        temp3 = (Math.random() * -5 - 18).toFixed(1);
+        tekst = `Ingevroren product: ${randomProduct}\nBegintemperatuur: ${temp1} °C\nNa 2,5 uur: ${temp2} °C\nNa 5 uur: ${temp3} °C\n\nInvriezen volgens richtlijnen uitgevoerd.`;
+      } else {
+        temp1 = (Math.random() * 30 + 55).toFixed(1);
+        temp2 = (Math.random() * 10 + 10).toFixed(1);
+        temp3 = (Math.random() * 3 + 3.5).toFixed(1);
+        tekst = `Gemeten product: ${randomProduct}\nBegintemperatuur: ${temp1} °C\nTemperatuur na 2,5 uur: ${temp2} °C\nTemperatuur na 5 uur: ${temp3} °C\n\nTerugkoelen naar behoren.`;
+      }
+      
+      document.getElementById(targetId).value = tekst;
+    }
+
+    function kopieer(id) {
+      const output = document.getElementById(id);
+      output.select();
+      document.execCommand('copy');
+      toonStatus('Tekst gekopieerd naar klembord!', 'success');
+    }
+
+    function addCustomProduct() {
+      const nameInput = document.getElementById('customProductName');
+      const dateInput = document.getElementById('customProductDate');
+      
+      const productName = nameInput.value.trim();
+      const expiryDate = dateInput.value;
+      
+      if (!productName) {
+        toonStatus('Voer een productnaam in.', 'error');
+        return;
+      }
+      
+      if (!expiryDate) {
+        toonStatus('Selecteer een weg op datum.', 'error');
+        return;
+      }
+      
+      // Voeg product toe aan custom lijst
+      const customProduct = {
+        id: Date.now(), // Unieke ID
+        naam: productName,
+        wegOpDatum: expiryDate
+      };
+      
+      customProducts.push(customProduct);
+      
+      // Reset invoervelden
+      nameInput.value = '';
+      dateInput.value = '';
+      
+      // Update de display
+      updateCustomProductsList();
+      
+      toonStatus(`${productName} toegevoegd!`, 'success');
+    }
+
+    function removeCustomProduct(id) {
+      customProducts = customProducts.filter(product => product.id !== id);
+      updateCustomProductsList();
+    }
+
+    function updateCustomProductsList() {
+      const customProductsList = document.getElementById('customProductsList');
+      
+      if (customProducts.length === 0) {
+        customProductsList.innerHTML = '<p style="color: #666; font-style: italic;">Nog geen custom producten toegevoegd.</p>';
+        return;
+      }
+      
+      customProductsList.innerHTML = customProducts.map(product => {
+        const formattedDate = new Date(product.wegOpDatum).toLocaleDateString('nl-NL');
+        return `
+          <div class="custom-product-item">
+            <div class="product-info">
+              <input type="checkbox" id="custom_${product.id}" name="customProducts" value="${product.id}">
+              <label for="custom_${product.id}">${product.naam} (weg op: ${formattedDate})</label>
+            </div>
+            <button class="remove-btn" onclick="removeCustomProduct(${product.id})">Verwijder</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function generateProductGrid() {
+      const productGrid = document.getElementById('productGrid');
+      const today = new Date();
+      
+      productGrid.innerHTML = stickerProducten.map((product, index) => {
+        const expiryDate = new Date(today);
+        expiryDate.setDate(today.getDate() + product.houdbaarDagen);
+        const formattedDate = expiryDate.toISOString().split('T')[0];
+        
+        return `
+          <div class="product-item">
+            <input type="checkbox" id="product_${index}" name="products" value="${product.naam}">
+            <label for="product_${index}">${product.naam}</label>
+            <input type="date" id="date_${index}" value="${formattedDate}" title="Weg op datum">
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function getSelectedProducts() {
+      const selectedProducts = [];
+      
+      // Reguliere producten
+      const checkboxes = document.querySelectorAll('input[name="products"]:checked');
+      checkboxes.forEach(checkbox => {
+        const index = checkbox.id.split('_')[1];
+        const dateInput = document.getElementById(`date_${index}`);
+        const productName = checkbox.value;
+        const expiryDate = new Date(dateInput.value);
+        
+        selectedProducts.push({
+          naam: productName,
+          wegOpDatum: expiryDate.toLocaleDateString('nl-NL')
+        });
+      });
+      
+      // Custom producten
+      const customCheckboxes = document.querySelectorAll('input[name="customProducts"]:checked');
+      customCheckboxes.forEach(checkbox => {
+        const productId = parseInt(checkbox.value);
+        const customProduct = customProducts.find(p => p.id === productId);
+        if (customProduct) {
+          const expiryDate = new Date(customProduct.wegOpDatum);
+          selectedProducts.push({
+            naam: customProduct.naam,
+            wegOpDatum: expiryDate.toLocaleDateString('nl-NL')
+          });
+        }
+      });
+      
+      return selectedProducts;
+    }
+
+    async function zoekPrinters() {
+      const statusDiv = document.getElementById('printStatus');
+      const printerSelect = document.getElementById('printerSelect');
+      const printBtn = document.getElementById('printBtn');
+      
+      toonStatus('Zoeken naar printers...', 'info');
+      
+      try {
+        // Probeer eerst Web USB API
+        if ('usb' in navigator) {
+          const device = await navigator.usb.requestDevice({
+            filters: [
+              { vendorId: 0x0B00 }, // Argox vendor ID
+              { vendorId: 0x04b8 }, // Epson
+              { vendorId: 0x0525 }, // Algemene USB printer
+            ]
+          });
+          
+          selectedPrinter = { type: 'usb', device: device };
+          printerSelect.innerHTML = '<option value="selected">USB Printer (Verbonden)</option>';
+          printerSelect.value = 'selected';
+          printBtn.disabled = false;
+          toonStatus('USB Printer gevonden en verbonden!', 'success');
+          return;
+        }
+        
+        // Fallback: Browser print API
+        if ('print' in window) {
+          selectedPrinter = { type: 'browser' };
+          printerSelect.innerHTML = '<option value="browser">Browser Print (Systeem Printer)</option>';
+          printerSelect.value = 'browser';
+          printBtn.disabled = false;
+          toonStatus('Browser print functionaliteit beschikbaar', 'success');
+          return;
+        }
+        
+        throw new Error('Geen ondersteunde printer API beschikbaar');
+        
+      } catch (error) {
+        console.error('Fout bij zoeken naar printers:', error);
+        
+        // Als alles faalt, bied browser print aan
+        selectedPrinter = { type: 'browser' };
+        printerSelect.innerHTML = '<option value="browser">Browser Print (Systeem Printer)</option>';
+        printerSelect.value = 'browser';
+        printBtn.disabled = false;
+        
+        if (error.name === 'NotAllowedError') {
+          toonStatus('USB toegang geweigerd. Browser print wordt gebruikt.', 'info');
+        } else {
+          toonStatus('Direct USB print niet beschikbaar. Browser print wordt gebruikt.', 'info');
+        }
+      }
+    }
+
+    async function printSelectedLabels() {
+      const selectedProducts = getSelectedProducts();
+      const employee = document.getElementById('employeeSelect').value;
+      const labelSize = document.getElementById('labelSize').value;
+      
+      if (selectedProducts.length === 0) {
+        toonStatus('Selecteer eerst één of meer producten.', 'error');
+        return;
+      }
+      
+      if (!employee) {
+        toonStatus('Selecteer eerst een medewerker.', 'error');
+        return;
+      }
+      
+      if (!selectedPrinter) {
+        toonStatus('Selecteer eerst een printer.', 'error');
+        return;
+      }
+      
+      try {
+        toonStatus(`Bezig met printen van ${selectedProducts.length} label(s)...`, 'info');
+        
+        if (selectedPrinter.type === 'usb') {
+          await printMultipleLabelsUSB(selectedProducts, employee, labelSize);
+        } else {
+          await printMultipleLabelsBrowser(selectedProducts, employee, labelSize);
+        }
+        
+      } catch (error) {
+        console.error('Fout bij printen:', error);
+        toonStatus(`Print fout: ${error.message}`, 'error');
+      }
+    }
+
+    async function printMultipleLabelsUSB(products, employee, labelSize) {
+      const device = selectedPrinter.device;
+      
+      try {
+        await device.open();
+        
+        if (device.configuration === null) {
+          await device.selectConfiguration(1);
+        }
+        
+        await device.claimInterface(0);
+        
+        // Print elk label afzonderlijk
+        for (let i = 0; i < products.length; i++) {
+          const product = products[i];
+          const today = new Date().toLocaleDateString('nl-NL');
+          
+          const labelText = `${product.naam}
+Gemaakt: ${today}
+Weg op: ${product.wegOpDatum}
+Door: ${employee}`;
+          
+          const printCommands = generatePPLACommands(labelText, labelSize);
+          const encoder = new TextEncoder();
+          
+          for (const command of printCommands) {
+            const data = encoder.encode(command);
+            await device.transferOut(1, data);
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+          
+          // Wacht tussen labels
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        await device.releaseInterface(0);
+        await device.close();
+        
+        toonStatus(`${products.length} label(s) succesvol geprint via USB!`, 'success');
+        
+      } catch (error) {
+        throw new Error(`USB Print fout: ${error.message}`);
+      }
+    }
+
+    async function printMultipleLabelsBrowser(products, employee, labelSize) {
+      const today = new Date().toLocaleDateString('nl-NL');
+      
+      // Maak een print-vriendelijke HTML pagina met alle labels
+      const printWindow = window.open('', '_blank');
+      
+      const labelsHtml = products.map(product => `
+        <div class="label">
+          <div class="line product-name">${product.naam}</div>
+          <div class="line">Gemaakt: ${today}</div>
+          <div class="line">Weg op: ${product.wegOpDatum}</div>
+          <div class="line employee">Door: ${employee}</div>
+        </div>
+        <div class="page-break"></div>
+      `).join('');
+      
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Product Labels</title>
+          <style>
+            @page {
+              size: ${labelSize === 'small' ? '30mm 20mm' : 
+                     labelSize === 'large' ? '50mm 30mm' : '40mm 30mm'};
+              margin: 1mm;
+            }
+            body {
+              font-family: Arial, sans-serif;
+              font-size: ${labelSize === 'small' ? '7pt' : 
+                          labelSize === 'large' ? '11pt' : '9pt'};
+              line-height: 1.1;
+              margin: 0;
+              padding: 0;
+              background: white;
+            }
+            .label {
+              width: 100%;
+              height: ${labelSize === 'small' ? '18mm' : 
+                       labelSize === 'large' ? '28mm' : '28mm'};
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              text-align: center;
+              border: 1px solid #000;
+              box-sizing: border-box;
+              padding: 1mm;
+              page-break-inside: avoid;
+            }
+            .line {
+              margin: 0.5mm 0;
+              font-weight: bold;
+            }
+            .product-name {
+              font-size: ${labelSize === 'small' ? '8pt' : 
+                          labelSize === 'large' ? '12pt' : '10pt'};
+              font-weight: bold;
+            }
+            .employee {
+              font-size: ${labelSize === 'small' ? '6pt' : 
+                          labelSize === 'large' ? '9pt' : '7pt'};
+            }
+            .page-break {
+              page-break-after: always;
+            }
+            .page-break:last-child {
+              display: none;
+            }
+            @media print {
+              body { -webkit-print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          ${labelsHtml}
+        </body>
+        </html>
+      `;
+      
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      
+      // Wacht tot content geladen is en print dan
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 500);
+      };
+      
+      toonStatus(`Print dialoog geopend voor ${products.length} label(s) - selecteer je Argox printer!`, 'success');
+    }
+
+    function generatePPLACommands(text, size) {
+      const lines = text.split('\n').filter(line => line.trim() !== '');
+      const commands = [];
+      
+      // PPLA commando's voor Argox printers
+      commands.push('\x02');  // STX - Start of text
+      commands.push('L\r\n'); // Start label formatting
+      
+      // Label grootte instellen
+      let width, height;
+      switch(size) {
+        case 'small':
+          width = 240; height = 160; // 30x20mm bij 203dpi
+          break;
+        case 'large':
+          width = 400; height = 240; // 50x30mm bij 203dpi
+          break;
+        default: // medium
+          width = 320; height = 240; // 40x30mm bij 203dpi
+      }
+      
+      commands.push(`D11\r\n`); // Density setting
+      commands.push(`H10\r\n`); // Heat setting
+      commands.push(`S2\r\n`);  // Speed setting
+      
+      // Tekst positioneren en printen
+      let yPos = 20;
+      const fontSize = lines.length > 4 ? '1' : '2'; // Nog kleinere font bij meer regels
+      
+      lines.forEach((line, index) => {
+        if (line.trim()) {
+          const xPos = 15;
+          // Maak productnaam groter
+          const currentFontSize = index === 0 ? (fontSize === '1' ? '2' : '3') : fontSize;
+          commands.push(`A${xPos},${yPos},0,${currentFontSize},1,1,N,"${line.trim()}"\r\n`);
+          yPos += currentFontSize === '3' ? 40 : currentFontSize === '2' ? 30 : 20;
+        }
+      });
+      
+      commands.push('E\r\n'); // End formatting en print
+      
+      return commands;
+    }
+
+    function toonStatus(message, type) {
+      const statusDiv = document.getElementById('printStatus');
+      statusDiv.textContent = message;
+      statusDiv.className = `print-status status-${type}`;
+      
+      // Verberg status na 5 seconden voor success berichten
+      if (type === 'success') {
+        setTimeout(() => {
+          statusDiv.textContent = '';
+          statusDiv.className = '';
+        }, 5000);
+      }
+    }
+
+    // Check theme every minute to handle automatic switching
+    function startThemeChecker() {
+      setInterval(checkTimeAndSetTheme, 60000); // Check every minute
+    }
+
+    // Initialisatie bij laden van de pagina
+    window.onload = () => {
+      // Set initial theme based on time
+      checkTimeAndSetTheme();
+      
+      // Start theme checker for automatic switching
+      startThemeChecker();
+      
+      genereer('bainmarie', 'output1');
+      genereer('vriezer', 'output2');
+      
+      // Genereer product grid
+      generateProductGrid();
+      
+      // Initialiseer custom products sectie
+      updateCustomProductsList();
+      
+      // Zet default datum voor custom product op morgen
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      document.getElementById('customProductDate').value = tomorrow.toISOString().split('T')[0];
+      
+      // Maak browser print standaard beschikbaar
+      selectedPrinter = { type: 'browser' };
+      document.getElementById('printerSelect').innerHTML = '<option value="browser">Browser Print (Systeem Printer)</option>';
+      document.getElementById('printerSelect').value = 'browser';
+    };
+  </script>
+</body>
+</html>
